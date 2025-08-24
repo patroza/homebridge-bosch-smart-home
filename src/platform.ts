@@ -27,7 +27,7 @@ export class BoschPlatform implements DynamicPlatformPlugin {
   public readonly Characteristic: typeof Characteristic =
     this.api.hap.Characteristic;
 
-  public readonly accessories: PlatformAccessory<{ device: PlugBase }>[] = [];
+  public readonly accessories: Map<string, PlatformAccessory<{ device: PlugBase }>> = new Map();
 
   private bshb!: BoschSmartHomeBridge;
 
@@ -41,6 +41,8 @@ export class BoschPlatform implements DynamicPlatformPlugin {
   public readonly EveVoltage1: typeof Characteristic.CarbonDioxidePeakLevel;
 
   public readonly EveAmperage1: typeof Characteristic.CarbonDioxidePeakLevel;
+
+  private readonly discoveredCacheUUIDs: string[] = [];
   
   constructor(
     public readonly log: Logger,
@@ -77,37 +79,6 @@ export class BoschPlatform implements DynamicPlatformPlugin {
 
     this.EveTotalConsumption = EveTotalConsumption;
 
-    // 
-    // var EveVoltage1 = function () {
-    // 	Characteristic.call(this, 'Volt', 'E863F10A-079E-48FF-8F27-9C2605A29F52');
-    // 	this.setProps({
-    // 		format: Characteristic.Formats.FLOAT,
-    // 		unit: 'Volt',
-    // 		maxValue: 1000000000,
-    // 		minValue: 0,
-    // 		minStep: 0.001,
-    // 		perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
-    // 	});
-    // 	this.value = this.getDefaultValue();
-    // };
-    // EveVoltage1.UUID = 'E863F10A-079E-48FF-8F27-9C2605A29F52';
-    // inherits(EveVoltage1, Characteristic);
-
-    // var EveAmpere1 = function () {
-    // 	Characteristic.call(this, 'Ampere', 'E863F126-079E-48FF-8F27-9C2605A29F52');
-    // 	this.setProps({
-    // 		format: Characteristic.Formats.FLOAT,
-    // 		unit: 'Ampere',
-    // 		maxValue: 1000000000,
-    // 		minValue: 0,
-    // 		minStep: 0.001,
-    // 		perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
-    // 	});
-    // 	this.value = this.getDefaultValue();
-    // };
-    // EveAmpere1.UUID = 'E863F126-079E-48FF-8F27-9C2605A29F52';
-    // inherits(EveAmpere1, Characteristic);
-    
     class EveVoltage1 extends this.api.hap.Characteristic {
       static readonly UUID = "E863F10A-079E-48FF-8F27-9C2605A29F52";
 
@@ -153,9 +124,12 @@ export class BoschPlatform implements DynamicPlatformPlugin {
       static readonly UUID = "E863F10D-079E-48FF-8F27-9C2605A29F52";
 
       constructor() {
-        super("Power Consumption", EvePowerConsumption.UUID, {
+        super("Consumption", EvePowerConsumption.UUID, {
           format: api.hap.Characteristic.Formats.UINT16,
-          unit: "W",
+          unit: "Watts",
+          maxValue: 100000,
+          minValue: 0,
+          minStep: 1,
           perms: [
             api.hap.Characteristic.Perms.READ,
             api.hap.Characteristic.Perms.NOTIFY,
@@ -181,7 +155,6 @@ export class BoschPlatform implements DynamicPlatformPlugin {
 
     this.api.on("didFinishLaunching", () => {
       log.debug("Executed didFinishLaunching callback");
-      log.info("Finish launching?");
       if (!this.config.bridgeIp || !this.config.clientCert || !this.config.clientKey || !this.config.bridgePassword) {
         this.log.error("Please check your config.json. Missing bridgeIp or clientCert or clientKey or bridgePassword");
         return;
@@ -211,7 +184,8 @@ export class BoschPlatform implements DynamicPlatformPlugin {
   configureAccessory(accessory: PlatformAccessory<{ device: PlugBase }>): void {
     this.log.info("Loading accessory from cache:", accessory.displayName);
 
-    this.accessories.push(accessory);
+    // in discovery we will find it as existing accessory and set it up accordingly..
+    this.accessories.set(accessory.UUID, accessory);
   }
 
   discoverDevices() {
@@ -241,35 +215,19 @@ export class BoschPlatform implements DynamicPlatformPlugin {
           //   state: allPowerMeters.find((_) => _.deviceId === p.id)?.state,
           // }));
 
-          for (let i = 0; i < devices.length; i += 1) {
-            const device = devices[i];
-
+          for (const device of devices) {
             const uuid = this.api.hap.uuid.generate(device.serial);
-            const existingAccessory = this.accessories.find(
-              (accessory) => accessory.UUID === uuid,
-            );
+            const existingAccessory = this.accessories.get(uuid);
 
             if (existingAccessory) {
-              if (device) {
-                this.log.info(
-                  "Restoring existing accessory from cache:",
-                  existingAccessory.displayName,
-                );
+              this.log.info(
+                "Restoring existing accessory from cache:",
+                existingAccessory.displayName,
+              );
 
-                new Accessory(this, existingAccessory, this.bshb);
+              new Accessory(this, existingAccessory, this.bshb);
 
-                this.api.updatePlatformAccessories([existingAccessory]);
-              } else if (!device) {
-                this.api.unregisterPlatformAccessories(
-                  PLUGIN_NAME,
-                  PLATFORM_NAME,
-                  [existingAccessory],
-                );
-                this.log.info(
-                  "Removing existing accessory from cache:",
-                  existingAccessory.displayName,
-                );
-              }
+              this.api.updatePlatformAccessories([existingAccessory]);
             } else {
               this.log.info("Adding new accessory:", device.name);
 
@@ -284,6 +242,19 @@ export class BoschPlatform implements DynamicPlatformPlugin {
               this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
                 accessory,
               ]);
+            }
+            
+            // push into discoveredCacheUUIDs
+            this.discoveredCacheUUIDs.push(uuid);
+          }
+
+          // you can also deal with accessories from the cache which are no longer present by removing them from Homebridge
+          // for example, if your plugin logs into a cloud account to retrieve a device list, and a user has previously removed a device
+          // from this cloud account, then this device will no longer be present in the device list but will still be in the Homebridge cache
+          for (const [uuid, accessory] of this.accessories) {
+            if (!this.discoveredCacheUUIDs.includes(uuid)) {
+              this.log.info("Removing existing accessory from cache:", accessory.displayName);
+              this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
             }
           }
     }, error: (error) => this.log.error("Error fetching devices", error), complete: () => this.log.info("Fetch devices complete") });
