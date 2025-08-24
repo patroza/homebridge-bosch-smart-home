@@ -69,37 +69,6 @@ function EnergyMeter (log, config) {
   };
   EveTotalConsumption.UUID = 'E863F10C-079E-48FF-8F27-9C2605A29F52';
   inherits(EveTotalConsumption, Characteristic);
-
-  // var EveVoltage1 = function () {
-  //   Characteristic.call(this, 'Volt', 'E863F10A-079E-48FF-8F27-9C2605A29F52');
-  //   this.setProps({
-  //     format: Characteristic.Formats.FLOAT,
-  //     unit: 'Volt',
-  //     maxValue: 1000000000,
-  //     minValue: 0,
-  //     minStep: 0.001,
-  //     perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
-  //   });
-  //   this.value = this.getDefaultValue();
-  // };
-  // EveVoltage1.UUID = 'E863F10A-079E-48FF-8F27-9C2605A29F52';
-  // inherits(EveVoltage1, Characteristic);
-
-  // var EveAmpere1 = function () {
-  //   Characteristic.call(this, 'Ampere', 'E863F126-079E-48FF-8F27-9C2605A29F52');
-  //   this.setProps({
-  //     format: Characteristic.Formats.FLOAT,
-  //     unit: 'Ampere',
-  //     maxValue: 1000000000,
-  //     minValue: 0,
-  //     minStep: 0.001,
-  //     perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
-  //   });
-  //   this.value = this.getDefaultValue();
-  // };
-  // EveAmpere1.UUID = 'E863F126-079E-48FF-8F27-9C2605A29F52';
-  // inherits(EveAmpere1, Characteristic);
-
   var PowerMeterService = function (displayName, subtype) {
     Service.call(this, displayName, '00000001-0000-1777-8000-775D67EC4377', subtype);
     this.addCharacteristic(EvePowerConsumption);
