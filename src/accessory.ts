@@ -52,9 +52,7 @@ export class Accessory {
       .addCharacteristic(this.platform.EveVoltage1)
       .on("get", (callback) => callback(null, 232));
 
-    this.historyService = new FakeGatoHistoryService("energy", this, { storage:"fs" });
-
-    this.accessory.addService(this.historyService);
+    this.historyService = new FakeGatoHistoryService("energy", this.accessory, { storage:"fs" });
 
     // template:
     // this.service =
