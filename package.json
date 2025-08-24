@@ -1,0 +1,15 @@
+{
+  "name": "bosch-smart-home",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bosch-smart-home-bridge": "^1.7.34"
+  }
+}
