@@ -28,7 +28,7 @@ export default class Platform implements DynamicPlatformPlugin {
   public readonly Characteristic: typeof Characteristic =
     this.api.hap.Characteristic;
 
-  public readonly accessories: PlatformAccessory<PlugBase>[] = [];
+  public readonly accessories: PlatformAccessory<{ device: PlugBase }>[] = [];
 
   private readonly bshb: BoschSmartHomeBridge;
 
@@ -40,7 +40,7 @@ export default class Platform implements DynamicPlatformPlugin {
       bridgePassword: string;
       bridgeIp: string;
     },
-    public readonly api: API
+    public readonly api: API,
   ) {
     this.bshb = BoschSmartHomeBridgeBuilder.builder()
       .withHost(config.bridgeIp)
@@ -61,7 +61,7 @@ export default class Platform implements DynamicPlatformPlugin {
     });
   }
 
-  configureAccessory(accessory: PlatformAccessory<PlugBase>): void {
+  configureAccessory(accessory: PlatformAccessory<{ device: PlugBase }>): void {
     this.log.info("Loading accessory from cache:", accessory.displayName);
 
     this.accessories.push(accessory);
@@ -75,7 +75,7 @@ export default class Platform implements DynamicPlatformPlugin {
         .getDeviceServices(undefined, "PowerMeter")
         .subscribe((response) => {
           const allPowerMeters = response.parsedResponse.filter(
-            (_) => _.state && _.state["@type"] === "powerMeterState"
+            (_) => _.state && _.state["@type"] === "powerMeterState",
           );
           type Plug = {
             name: string;
@@ -97,14 +97,14 @@ export default class Platform implements DynamicPlatformPlugin {
 
             const uuid = this.api.hap.uuid.generate(device.serial);
             const existingAccessory = this.accessories.find(
-              (accessory) => accessory.UUID === uuid
+              (accessory) => accessory.UUID === uuid,
             );
 
             if (existingAccessory) {
               if (device) {
                 this.log.info(
                   "Restoring existing accessory from cache:",
-                  existingAccessory.displayName
+                  existingAccessory.displayName,
                 );
 
                 new Accessory(this, existingAccessory, this.bshb);
@@ -114,11 +114,11 @@ export default class Platform implements DynamicPlatformPlugin {
                 this.api.unregisterPlatformAccessories(
                   PLUGIN_NAME,
                   PLATFORM_NAME,
-                  [existingAccessory]
+                  [existingAccessory],
                 );
                 this.log.info(
                   "Removing existing accessory from cache:",
-                  existingAccessory.displayName
+                  existingAccessory.displayName,
                 );
               }
             } else {

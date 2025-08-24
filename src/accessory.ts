@@ -21,7 +21,7 @@ export default class Accessory {
   constructor(
     private readonly platform: Platform,
     private readonly accessory: PlatformAccessory<{ device: PlugBase }>,
-    private readonly bshb: BoschSmartHomeBridge
+    private readonly bshb: BoschSmartHomeBridge,
   ) {
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -29,7 +29,7 @@ export default class Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, "Energy Meter")
       .setCharacteristic(
         this.platform.Characteristic.SerialNumber,
-        accessory.context.device.id
+        accessory.context.device.id,
       );
     //   var EveTotalConsumption = function () {
     //     Characteristic.call(this, 'Energy', 'E863F10C-079E-48FF-8F27-9C2605A29F52');
@@ -150,13 +150,13 @@ export default class Accessory {
         .getDeviceServices(this.accessory.context.device.id, "PowerMeter")
         .subscribe((response) => {
           const allPowerMeters = response.parsedResponse.filter(
-            (_) => _.state && _.state["@type"] === "powerMeterState"
+            (_) => _.state && _.state["@type"] === "powerMeterState",
           ); // TODO: do request with bosch sdk, and set values
           const powerConsumption = Math.abs(
-            parseFloat(allPowerMeters[0].state.powerConsumption)
+            parseFloat(allPowerMeters[0].state.powerConsumption),
           );
           const totalPowerConsumption = Math.abs(
-            parseFloat(allPowerMeters[0].state.energyConsumption) / 1000
+            parseFloat(allPowerMeters[0].state.energyConsumption) / 1000,
           );
           this.states.powerConsumption = powerConsumption;
           this.states.totalConsumption = totalPowerConsumption;
