@@ -1,11 +1,11 @@
 import {
   API,
+  Characteristic,
   DynamicPlatformPlugin,
   Logger,
   PlatformAccessory,
   PlatformConfig,
   Service,
-  Characteristic,
 } from "homebridge";
 
 import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
@@ -20,15 +20,17 @@ import {
 
 import fs from "fs";
 
+export type PlugBase = { id: string; name: string; serial: string };
+
 export default class Platform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
 
   public readonly Characteristic: typeof Characteristic =
     this.api.hap.Characteristic;
 
-  public readonly accessories: PlatformAccessory[] = [];
+  public readonly accessories: PlatformAccessory<PlugBase>[] = [];
 
-  private readonly bshb: BoschSmartHomeBridge
+  private readonly bshb: BoschSmartHomeBridge;
 
   constructor(
     public readonly log: Logger,
@@ -59,83 +61,83 @@ export default class Platform implements DynamicPlatformPlugin {
     });
   }
 
-  configureAccessory(accessory: PlatformAccessory): void {
+  configureAccessory(accessory: PlatformAccessory<PlugBase>): void {
     this.log.info("Loading accessory from cache:", accessory.displayName);
 
     this.accessories.push(accessory);
   }
 
   discoverDevices(): void {
-    const client = this.bshb.getBshcClient()
-    client
-      .getDevice()
-      .subscribe((device) => {
-        const plugs = device.parsedResponse.filter(
-          (_) => _.deviceModel === "PLUG_COMPACT"
-        );
-           client
-            .getDeviceServices(undefined, "PowerMeter")
-            .subscribe(response => {
-              const allPowerMeters = response.parsedResponse.filter(_ => _.state && _.state['@type'] === "powerMeterState")
-              type Plug = {
-                name: string
-                serial: string
-                id: string
-                state: {
-                  powerConsumption: number,
-                  energyConsumption: number,
-                  energyConsumptionStartDate: string  // '2025-08-02T06:48:53Z'
-                }
+    const client = this.bshb.getBshcClient();
+    client.getDevice().subscribe((d) => {
+      const plugs = d.parsedResponse.filter((_) => _.d === "PLUG_COMPACT");
+      client
+        .getDeviceServices(undefined, "PowerMeter")
+        .subscribe((response) => {
+          const allPowerMeters = response.parsedResponse.filter(
+            (_) => _.state && _.state["@type"] === "powerMeterState"
+          );
+          type Plug = {
+            name: string;
+            serial: string;
+            id: string;
+            state: {
+              powerConsumption: number;
+              energyConsumption: number;
+              energyConsumptionStartDate: string; // '2025-08-02T06:48:53Z'
+            };
+          };
+          const devices: Plug[] = plugs.map((p) => ({
+            ...p,
+            state: allPowerMeters.find((_) => _.deviceId === p.id)?.state,
+          }));
+
+          for (let i = 0; i < devices.length; i += 1) {
+            const device = devices[i];
+
+            const uuid = this.api.hap.uuid.generate(device.serial);
+            const existingAccessory = this.accessories.find(
+              (accessory) => accessory.UUID === uuid
+            );
+
+            if (existingAccessory) {
+              if (device) {
+                this.log.info(
+                  "Restoring existing accessory from cache:",
+                  existingAccessory.displayName
+                );
+
+                new Accessory(this, existingAccessory, this.bshb);
+
+                this.api.updatePlatformAccessories([existingAccessory]);
+              } else if (!device) {
+                this.api.unregisterPlatformAccessories(
+                  PLUGIN_NAME,
+                  PLATFORM_NAME,
+                  [existingAccessory]
+                );
+                this.log.info(
+                  "Removing existing accessory from cache:",
+                  existingAccessory.displayName
+                );
               }
-              const devices: Plug[] = plugs.map(p => ({...p, state: allPowerMeters.find(_ => _.deviceId === p.id)?.state }))
+            } else {
+              this.log.info("Adding new accessory:", device.name);
 
-              
+              const accessory = new this.api.platformAccessory<{
+                device: { id: string; name: string; serial: string };
+              }>(device.name, uuid);
 
-    for (let i = 0; i < devices.length; i += 1) {
-      const device = devices[i];
+              accessory.context.device = device;
 
-      const uuid = this.api.hap.uuid.generate(device.serial);
-      const existingAccessory = this.accessories.find(
-        (accessory) => accessory.UUID === uuid
-      );
+              new Accessory(this, accessory, this.bshb);
 
-      if (existingAccessory) {
-        if (device) {
-          this.log.info(
-            "Restoring existing accessory from cache:",
-            existingAccessory.displayName
-          );
-
-          new Accessory(this, existingAccessory);
-
-          this.api.updatePlatformAccessories([existingAccessory]);
-        } else if (!device) {
-          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-            existingAccessory,
-          ]);
-          this.log.info(
-            "Removing existing accessory from cache:",
-            existingAccessory.displayName
-          );
-        }
-      } else {
-        this.log.info("Adding new accessory:", device.name);
-
-        const accessory = new this.api.platformAccessory(
-          device.name,
-          uuid
-        );
-
-        accessory.context.device = device;
-
-        new Accessory(this, accessory);
-
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-          accessory,
-        ]);
-      }
-    }
-      });
-
+              this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
+                accessory,
+              ]);
+            }
+          }
+        });
+    });
   }
 }

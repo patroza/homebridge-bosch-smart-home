@@ -189,14 +189,6 @@ EnergyMeter.prototype.getTotalConsumption = function (callback) {
   callback(null, this.totalPowerConsumption);
 };
 
-EnergyMeter.prototype.getVoltage1 = function (callback) {
-  callback(null, this.voltage1);
-};
-
-EnergyMeter.prototype.getAmpere1 = function (callback) {
-  callback(null, this.ampere1);
-};
-
 EnergyMeter.prototype.getServices = function () {
   this.log("getServices: " + this.name);
   if (this.update_interval > 0) {
