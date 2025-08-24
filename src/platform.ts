@@ -18,7 +18,6 @@ import {
   BoschSmartHomeBridge,
 } from "bosch-smart-home-bridge";
 
-import fs from "fs";
 
 export type PlugBase = { id: string; name: string; serial: string };
 
@@ -70,27 +69,27 @@ export default class Platform implements DynamicPlatformPlugin {
   discoverDevices(): void {
     const client = this.bshb.getBshcClient();
     client.getDevice().subscribe((d) => {
-      const plugs = d.parsedResponse.filter((_) => _.d === "PLUG_COMPACT");
-      client
-        .getDeviceServices(undefined, "PowerMeter")
-        .subscribe((response) => {
-          const allPowerMeters = response.parsedResponse.filter(
-            (_) => _.state && _.state["@type"] === "powerMeterState",
-          );
+      const devices: Plug[] = d.parsedResponse.filter((_) => _.d === "PLUG_COMPACT");
+      // client
+      //   .getDeviceServices(undefined, "PowerMeter")
+      //   .subscribe((response) => {
+      //     const allPowerMeters = response.parsedResponse.filter(
+      //       (_) => _.state && _.state["@type"] === "powerMeterState",
+      //     );
           type Plug = {
             name: string;
             serial: string;
             id: string;
-            state: {
-              powerConsumption: number;
-              energyConsumption: number;
-              energyConsumptionStartDate: string; // '2025-08-02T06:48:53Z'
-            };
+            // state: {
+            //   powerConsumption: number;
+            //   energyConsumption: number;
+            //   energyConsumptionStartDate: string; // '2025-08-02T06:48:53Z'
+            // };
           };
-          const devices: Plug[] = plugs.map((p) => ({
-            ...p,
-            state: allPowerMeters.find((_) => _.deviceId === p.id)?.state,
-          }));
+          // const devices: Plug[] = plugs.map((p) => ({
+          //   ...p,
+          //   state: allPowerMeters.find((_) => _.deviceId === p.id)?.state,
+          // }));
 
           for (let i = 0; i < devices.length; i += 1) {
             const device = devices[i];
@@ -137,7 +136,6 @@ export default class Platform implements DynamicPlatformPlugin {
               ]);
             }
           }
-        });
     });
   }
 }

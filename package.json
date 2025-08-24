@@ -2,6 +2,9 @@
     "name": "homebridge-bosch-smart-home",
     "version": "0.0.1",
     "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/patroza/homebridge-bosch-smart-home"},
     "keywords": [
         "hoobs-plugin",
         "homebridge-plugin"

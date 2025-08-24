@@ -8,6 +8,8 @@ import {
 
 import Platform, { PlugBase } from "./platform";
 import { BoschSmartHomeBridge } from "bosch-smart-home-bridge";
+import { PowerMeterService } from "./Services";
+import { EvePowerConsumption, EveTotalConsumption } from "./Characteristics";
 //import FakeGatoHistoryService from 'fakegato-history';
 
 export default class Accessory {
@@ -29,65 +31,8 @@ export default class Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, "Energy Meter")
       .setCharacteristic(
         this.platform.Characteristic.SerialNumber,
-        accessory.context.device.id,
+        accessory.context.device.serial,
       );
-    //   var EveTotalConsumption = function () {
-    //     Characteristic.call(this, 'Energy', 'E863F10C-079E-48FF-8F27-9C2605A29F52');
-    //     this.setProps({
-    //       format: Characteristic.Formats.FLOAT,
-    //       unit: 'kWh',
-    //       maxValue: 1000000000,
-    //       minValue: 0,
-    //       minStep: 0.001,
-    //       perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
-    //     });
-    //     this.value = this.getDefaultValue();
-    //   };
-
-    class EveTotalConsumption extends this.platform.Characteristic {
-      static readonly UUID = "E863F10C-079E-48FF-8F-8F27-9C2605A29F52";
-
-      constructor() {
-        super("Energy", EveTotalConsumption.UUID, {
-          format: platform.Characteristic.Formats.FLOAT,
-          unit: "kWh",
-          maxValue: 1000000000,
-          minValue: 0,
-          minStep: 0.001,
-          perms: [
-            platform.Characteristic.Perms.READ,
-            platform.Characteristic.Perms.NOTIFY,
-          ],
-        });
-        this.value = this.getDefaultValue();
-      }
-    }
-    class EvePowerConsumption extends this.platform.Characteristic {
-      static readonly UUID = "E863F10D-079E-48FF-8F27-9C2605A29F52";
-
-      constructor() {
-        super("Power Consumption", EvePowerConsumption.UUID, {
-          format: platform.Characteristic.Formats.UINT16,
-          unit: "W",
-          perms: [
-            platform.Characteristic.Perms.READ,
-            platform.Characteristic.Perms.NOTIFY,
-          ],
-        });
-        this.value = this.getDefaultValue();
-      }
-    }
-
-    class PowerMeterService extends this.platform.Service {
-      static readonly UUID = "00000001-0000-1777-8000-775D67EC4377";
-
-      constructor(displayName: string, subtype?: string) {
-        super(displayName, PowerMeterService.UUID, subtype);
-        this.addCharacteristic(EvePowerConsumption);
-        this.addOptionalCharacteristic(EveTotalConsumption);
-      }
-    }
-
     // info
     //   this.informationService = new Service.AccessoryInformation();
     //   this.informationService
@@ -96,8 +41,8 @@ export default class Accessory {
     //       .setCharacteristic(Characteristic.FirmwareRevision, version)
     //       .setCharacteristic(Characteristic.SerialNumber, this.serial);
 
-    //   // construct service
-    this.service = new PowerMeterService(this.accessory.displayName);
+
+    this.service = this.accessory.getService(PowerMeterService) || new PowerMeterService(this.accessory.displayName);
     this.service
       .getCharacteristic(EvePowerConsumption)
       .on("get", (callback) => callback(null, this.states.powerConsumption));
@@ -179,6 +124,6 @@ export default class Accessory {
           // TODO: handle errors this.log('Error processing data: ' + parseErr.message);
           //  if (this.debug_log) { this.log('Successful http response. [ voltage: ' + this.voltage1.toFixed(0) + 'V, current: ' + this.ampere1.toFixed(1) + 'A, consumption: ' + this.powerConsumption.toFixed(0) + 'W, total consumption: ' + this.totalPowerConsumption.toFixed(2) + 'kWh ]'); }
         });
-    }, 10000);
+    }, 10_000);
   }
 }
