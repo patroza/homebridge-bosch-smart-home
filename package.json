@@ -1,15 +1,37 @@
 {
-  "name": "bosch-smart-home",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "bosch-smart-home-bridge": "^1.7.34"
-  }
+    "name": "homebridge-bosch-smart-home",
+    "version": "0.0.1",
+    "license": "Apache-2.0",
+    "keywords": [
+        "hoobs-plugin",
+        "homebridge-plugin"
+    ],
+    "main": "lib/index.js",
+    "engines": {
+        "node": ">=10.17.0"
+    },
+    "scripts": {
+        "build": "rimraf ./lib && tsc"
+    },
+    "devDependencies": {
+        "@tsconfig/node10": "^1.0.11",
+        "@types/node": "^24.3.0",
+        "@typescript-eslint/eslint-plugin": "^7.18.0",
+        "@typescript-eslint/parser": "^7.18.0",
+        "eslint": "^8.57.1",
+        "eslint-config-airbnb-typescript": "^18.0.0",
+        "eslint-plugin-import": "^2.32.0",
+        "eslint-plugin-jsx-a11y": "^6.10.2",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^5.2.0",
+        "homebridge": "^1.11.0",
+        "rimraf": "^6.0.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.2"
+    },
+    "dependencies": {
+        "axios": "^1.11.0",
+        "bosch-smart-home-bridge": "^1.7.34",
+        "fakegato-history": "^0.6.7"
+    }
 }

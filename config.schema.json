@@ -1,0 +1,40 @@
+{
+    "pluginAlias": "Bosch Smart Home",
+    "pluginType": "platform",
+    "singular": true,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "title": "Name",
+                "type": "string",
+                "required": true,
+                "default": ""
+            },
+            "bridgeIp": {
+                "title": "Bridge IP",
+                "type": "string",
+                "required": true,
+                "default": ""
+            },
+            "bridgePassword": {
+                "title": "Bridge Password",
+                "type": "string",
+                "required": true,
+                "default": ""
+            },
+            "clientCert": {
+                "title": "Client Cert",
+                "type": "string",
+                "required": true,
+                "default": ""
+            },
+            "clientKey": {
+                "title": "Client Key",
+                "type": "string",
+                "required": true,
+                "default": ""
+            }
+        }
+    }
+}
