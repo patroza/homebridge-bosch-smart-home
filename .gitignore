@@ -112,3 +112,4 @@ dist
 client-*.pem
 devices.json
 password.json
+src/tmp

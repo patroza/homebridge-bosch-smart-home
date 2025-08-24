@@ -1,19 +1,20 @@
-import {
+import type {
   Service,
   PlatformAccessory,
-  CharacteristicValue,
-  CharacteristicSetCallback,
-  CharacteristicGetCallback,
+  // CharacteristicValue,
+  // CharacteristicSetCallback,
+  // CharacteristicGetCallback,
 } from "homebridge";
 
-import Platform, { PlugBase } from "./platform";
+import { type BoschPlatform, PlugBase } from "./platform";
 import { BoschSmartHomeBridge } from "bosch-smart-home-bridge";
-import { PowerMeterService } from "./Services";
-import { EvePowerConsumption, EveTotalConsumption } from "./Characteristics";
-//import FakeGatoHistoryService from 'fakegato-history';
+import FakegatoHistory from "fakegato-history";
 
-export default class Accessory {
+
+export class Accessory {
   private service: Service;
+
+  private historyService: Service;
 
   private states = {
     powerConsumption: 0,
@@ -21,10 +22,12 @@ export default class Accessory {
   };
 
   constructor(
-    private readonly platform: Platform,
+    private readonly platform: BoschPlatform,
     private readonly accessory: PlatformAccessory<{ device: PlugBase }>,
     private readonly bshb: BoschSmartHomeBridge,
   ) {
+    const FakeGatoHistoryService = FakegatoHistory(this.platform.api);
+
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, "Bosch")
@@ -33,24 +36,25 @@ export default class Accessory {
         this.platform.Characteristic.SerialNumber,
         accessory.context.device.serial,
       );
-    // info
-    //   this.informationService = new Service.AccessoryInformation();
-    //   this.informationService
-    //       .setCharacteristic(Characteristic.Manufacturer, "Bosch")
-    //       .setCharacteristic(Characteristic.Model, "Bosch Compact Plug")
-    //       .setCharacteristic(Characteristic.FirmwareRevision, version)
-    //       .setCharacteristic(Characteristic.SerialNumber, this.serial);
 
 
-    this.service = this.accessory.getService(PowerMeterService) || new PowerMeterService(this.accessory.displayName);
+    this.service = this.accessory.getService(this.platform.PowerMeterService) || new this.platform.PowerMeterService(this.accessory.displayName);
     this.service
-      .getCharacteristic(EvePowerConsumption)
+      .getCharacteristic(this.platform.EvePowerConsumption)
       .on("get", (callback) => callback(null, this.states.powerConsumption));
     this.service
-      .addCharacteristic(EveTotalConsumption)
+      .addCharacteristic(this.platform.EveTotalConsumption)
       .on("get", (callback) => callback(null, this.states.totalConsumption));
+    this.service
+      .addCharacteristic(this.platform.EveAmperage1)
+      .on("get", (callback) => callback(null, 1));
+    this.service
+      .addCharacteristic(this.platform.EveVoltage1)
+      .on("get", (callback) => callback(null, 232));
 
-    //this.historyService = new FakeGatoHistoryService("energy", this,{storage:'fs'});
+    this.historyService = new FakeGatoHistoryService("energy", this, { storage:"fs" });
+
+    this.accessory.addService(this.historyService);
 
     // template:
     // this.service =
@@ -89,41 +93,41 @@ export default class Accessory {
 
     // TODO: clear on destruction?
 
+    // will receive 503 when trying to retrieve PowerMeter of device that is currently not plugged in it seems..
     setInterval(() => {
       bshb
         .getBshcClient()
         .getDeviceServices(this.accessory.context.device.id, "PowerMeter")
-        .subscribe((response) => {
-          const allPowerMeters = response.parsedResponse.filter(
+        .subscribe({ next: (response) => {
+          const allPowerMeters = [response.parsedResponse].flat().filter(
             (_) => _.state && _.state["@type"] === "powerMeterState",
-          ); // TODO: do request with bosch sdk, and set values
+          );
           const powerConsumption = Math.abs(
             parseFloat(allPowerMeters[0].state.powerConsumption),
           );
           const totalPowerConsumption = Math.abs(
             parseFloat(allPowerMeters[0].state.energyConsumption) / 1000,
           );
+          this.platform.log.debug(`PowerMeter for ${this.accessory.context.device.name}`, { powerConsumption, totalPowerConsumption, state: response.parsedResponse  });
           this.states.powerConsumption = powerConsumption;
           this.states.totalConsumption = totalPowerConsumption;
           if (powerConsumption != null) {
             this.service
-              .getCharacteristic(EvePowerConsumption)
+              .getCharacteristic(platform.EvePowerConsumption)
               .setValue(powerConsumption, undefined, undefined);
           }
           //FakeGato
           // this.historyService.addEntry({time: Math.round(new Date().valueOf() / 1000), power: powerConsumption});}
           if (totalPowerConsumption != null) {
             this.service
-              .getCharacteristic(EveTotalConsumption)
+              .getCharacteristic(platform.EveTotalConsumption)
               .setValue(totalPowerConsumption, undefined, undefined);
           }
 
           // resolve(powerConsumption,totalPowerConsumption)
           //  this.waiting_response = false;
 
-          // TODO: handle errors this.log('Error processing data: ' + parseErr.message);
-          //  if (this.debug_log) { this.log('Successful http response. [ voltage: ' + this.voltage1.toFixed(0) + 'V, current: ' + this.ampere1.toFixed(1) + 'A, consumption: ' + this.powerConsumption.toFixed(0) + 'W, total consumption: ' + this.totalPowerConsumption.toFixed(2) + 'kWh ]'); }
-        });
+        }, error: (error) => this.platform.log.error("Error fetching device services", error), complete: () => this.platform.log.debug("Fetch device services complete") });
     }, 10_000);
   }
 }

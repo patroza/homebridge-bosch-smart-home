@@ -1,8 +1,8 @@
 import { API } from "homebridge";
 
 import { PLATFORM_NAME } from "./settings";
-import Platform from "./platform";
+import { BoschPlatform } from "./platform";
 
 export = (api: API): void => {
-    api.registerPlatform(PLATFORM_NAME, Platform);
+  api.registerPlatform(PLATFORM_NAME, BoschPlatform);
 };

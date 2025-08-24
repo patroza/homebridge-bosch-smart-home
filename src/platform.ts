@@ -1,4 +1,4 @@
-import {
+import type {
   API,
   Characteristic,
   DynamicPlatformPlugin,
@@ -9,7 +9,7 @@ import {
 } from "homebridge";
 
 import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
-import Accessory from "./accessory";
+import { Accessory } from "./accessory";
 
 import {
   BshbUtils,
@@ -21,7 +21,7 @@ import {
 
 export type PlugBase = { id: string; name: string; serial: string };
 
-export default class Platform implements DynamicPlatformPlugin {
+export class BoschPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
 
   public readonly Characteristic: typeof Characteristic =
@@ -29,8 +29,19 @@ export default class Platform implements DynamicPlatformPlugin {
 
   public readonly accessories: PlatformAccessory<{ device: PlugBase }>[] = [];
 
-  private readonly bshb: BoschSmartHomeBridge;
+  private bshb!: BoschSmartHomeBridge;
 
+  public readonly  PowerMeterService: typeof Service.PowerManagement;
+
+  // bs
+  public readonly EveTotalConsumption: typeof Characteristic.CarbonDioxidePeakLevel;
+
+  public readonly EvePowerConsumption: typeof Characteristic.CarbonDioxidePeakLevel;
+
+  public readonly EveVoltage1: typeof Characteristic.CarbonDioxidePeakLevel;
+
+  public readonly EveAmperage1: typeof Characteristic.CarbonDioxidePeakLevel;
+  
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig & {
@@ -41,21 +52,158 @@ export default class Platform implements DynamicPlatformPlugin {
     },
     public readonly api: API,
   ) {
-    this.bshb = BoschSmartHomeBridgeBuilder.builder()
-      .withHost(config.bridgeIp)
-      .withClientCert(config.clientCert)
-      .withClientPrivateKey(config.clientKey)
-      .withLogger(new DefaultLogger())
-      .build();
-
-    const identifier = BshbUtils.generateIdentifier();
-    this.bshb.pairIfNeeded("hoobs", identifier, config.password).subscribe();
+    log.info("loading..");
 
     this.log.debug("Finished initializing platform:", this.config.name);
 
+    class EveTotalConsumption extends this.api.hap.Characteristic {
+      static readonly UUID = "E863F10C-079E-48FF-8F27-9C2605A29F52";
+
+      constructor() {
+        super("Energy", EveTotalConsumption.UUID, {
+          format: api.hap.Characteristic.Formats.FLOAT,
+          unit: "kWh",
+          maxValue: 1000000000,
+          minValue: 0,
+          minStep: 0.001,
+          perms: [
+            api.hap.Characteristic.Perms.READ,
+            api.hap.Characteristic.Perms.NOTIFY,
+          ],
+        });
+        this.value = this.getDefaultValue();
+      }
+    }
+
+    this.EveTotalConsumption = EveTotalConsumption;
+
+    // 
+    // var EveVoltage1 = function () {
+    // 	Characteristic.call(this, 'Volt', 'E863F10A-079E-48FF-8F27-9C2605A29F52');
+    // 	this.setProps({
+    // 		format: Characteristic.Formats.FLOAT,
+    // 		unit: 'Volt',
+    // 		maxValue: 1000000000,
+    // 		minValue: 0,
+    // 		minStep: 0.001,
+    // 		perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+    // 	});
+    // 	this.value = this.getDefaultValue();
+    // };
+    // EveVoltage1.UUID = 'E863F10A-079E-48FF-8F27-9C2605A29F52';
+    // inherits(EveVoltage1, Characteristic);
+
+    // var EveAmpere1 = function () {
+    // 	Characteristic.call(this, 'Ampere', 'E863F126-079E-48FF-8F27-9C2605A29F52');
+    // 	this.setProps({
+    // 		format: Characteristic.Formats.FLOAT,
+    // 		unit: 'Ampere',
+    // 		maxValue: 1000000000,
+    // 		minValue: 0,
+    // 		minStep: 0.001,
+    // 		perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+    // 	});
+    // 	this.value = this.getDefaultValue();
+    // };
+    // EveAmpere1.UUID = 'E863F126-079E-48FF-8F27-9C2605A29F52';
+    // inherits(EveAmpere1, Characteristic);
+    
+    class EveVoltage1 extends this.api.hap.Characteristic {
+      static readonly UUID = "E863F10A-079E-48FF-8F27-9C2605A29F52";
+
+      constructor() {
+        super("Volt", EveVoltage1.UUID, {
+          format: api.hap.Characteristic.Formats.FLOAT,
+          unit: "Volt",
+          maxValue: 1000000000,
+          minValue: 0,
+          minStep: 0.001,
+          perms: [
+            api.hap.Characteristic.Perms.READ,
+            api.hap.Characteristic.Perms.NOTIFY,
+          ],
+        });
+        this.value = this.getDefaultValue();
+      }
+    }
+
+    class EveAmpere1 extends this.api.hap.Characteristic {
+      static readonly UUID = "E863F126-079E-48FF-8F27-9C2605A29F52";
+
+      constructor() {
+        super("Ampere", EveAmpere1.UUID, {
+          format: api.hap.Characteristic.Formats.FLOAT,
+          unit: "Ampere",
+          maxValue: 1000000000,
+          minValue: 0,
+          minStep: 0.001,
+          perms: [
+            api.hap.Characteristic.Perms.READ,
+            api.hap.Characteristic.Perms.NOTIFY,
+          ],
+        });
+        this.value = this.getDefaultValue();
+      }
+    } 
+
+    this.EveAmperage1 = EveAmpere1;
+    this.EveVoltage1 = EveVoltage1;
+  
+    class EvePowerConsumption extends this.api.hap.Characteristic {
+      static readonly UUID = "E863F10D-079E-48FF-8F27-9C2605A29F52";
+
+      constructor() {
+        super("Power Consumption", EvePowerConsumption.UUID, {
+          format: api.hap.Characteristic.Formats.UINT16,
+          unit: "W",
+          perms: [
+            api.hap.Characteristic.Perms.READ,
+            api.hap.Characteristic.Perms.NOTIFY,
+          ],
+        });
+        this.value = this.getDefaultValue();
+      }
+    }
+
+    this.EvePowerConsumption = EvePowerConsumption;
+
+    this.PowerMeterService = class PowerMeterService  extends this.api.hap.Service {
+      static readonly UUID = "00000001-0000-1777-8000-775D67EC4377";
+  
+      constructor(displayName: string, subtype?: string) {
+        super(displayName, PowerMeterService.UUID, subtype);
+        this.addCharacteristic(EvePowerConsumption);
+        this.addOptionalCharacteristic(EveTotalConsumption);
+        this.addOptionalCharacteristic(EveAmpere1);
+        this.addOptionalCharacteristic(EveVoltage1);
+      }
+    };
+
     this.api.on("didFinishLaunching", () => {
       log.debug("Executed didFinishLaunching callback");
+      log.info("Finish launching?");
+      if (!this.config.bridgeIp || !this.config.clientCert || !this.config.clientKey || !this.config.bridgePassword) {
+        this.log.error("Please check your config.json. Missing bridgeIp or clientCert or clientKey or bridgePassword");
+        return;
+      }
 
+      this.log.info("building BSHB client");
+      this.bshb = BoschSmartHomeBridgeBuilder.builder()
+        .withHost(config.bridgeIp)
+        .withClientCert(config.clientCert)
+        .withClientPrivateKey(config.clientKey)
+        .withLogger(new DefaultLogger())
+        .build();
+
+      const identifier = BshbUtils.generateIdentifier();
+      this.bshb.pairIfNeeded("hoobs", identifier, config.bridgePassword).subscribe({
+        next: () => this.log.info("pair next"),
+        error: (error) => this.log.error("Error pairing", error),
+        complete: () => this.log.info("pair complete"),
+      });
+
+
+      // todo wait until pair is complete?
       this.discoverDevices();
     });
   }
@@ -66,10 +214,12 @@ export default class Platform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  discoverDevices(): void {
+  discoverDevices() {
+    this.log.info("Discovering devices...");
     const client = this.bshb.getBshcClient();
-    client.getDevice().subscribe((d) => {
-      const devices: Plug[] = d.parsedResponse.filter((_) => _.d === "PLUG_COMPACT");
+    return client.getDevice().subscribe({ next: (d) => {
+      const devices: Plug[] = d.parsedResponse.filter((_) => _.deviceModel === "PLUG_COMPACT");
+      this.log.info(`Found ${devices.length} devices`, devices);
       // client
       //   .getDeviceServices(undefined, "PowerMeter")
       //   .subscribe((response) => {
@@ -136,6 +286,6 @@ export default class Platform implements DynamicPlatformPlugin {
               ]);
             }
           }
-    });
+    }, error: (error) => this.log.error("Error fetching devices", error), complete: () => this.log.info("Fetch devices complete") });
   }
 }
