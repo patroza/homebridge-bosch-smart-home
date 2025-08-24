@@ -18,6 +18,8 @@ import {
   BoschSmartHomeBridge,
 } from "bosch-smart-home-bridge";
 
+import { EveHomeKitTypes } from "homebridge-lib/EveHomeKitTypes";
+
 
 export type PlugBase = { id: string; name: string; serial: string };
 
@@ -31,18 +33,14 @@ export class BoschPlatform implements DynamicPlatformPlugin {
 
   private bshb!: BoschSmartHomeBridge;
 
-  public readonly  PowerMeterService: typeof Service.PowerManagement;
-
-  // bs
-  public readonly EveTotalConsumption: typeof Characteristic.CarbonDioxidePeakLevel;
-
-  public readonly EvePowerConsumption: typeof Characteristic.CarbonDioxidePeakLevel;
-
-  public readonly EveVoltage1: typeof Characteristic.CarbonDioxidePeakLevel;
-
-  public readonly EveAmperage1: typeof Characteristic.CarbonDioxidePeakLevel;
-
   private readonly discoveredCacheUUIDs: string[] = [];
+
+  // This is only required when using Custom Services and Characteristics not support by HomeKit
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public readonly CustomServices: any;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public readonly CustomCharacteristics: any;
   
   constructor(
     public readonly log: Logger,
@@ -58,100 +56,9 @@ export class BoschPlatform implements DynamicPlatformPlugin {
 
     this.log.debug("Finished initializing platform:", this.config.name);
 
-    class EveTotalConsumption extends this.api.hap.Characteristic {
-      static readonly UUID = "E863F10C-079E-48FF-8F27-9C2605A29F52";
-
-      constructor() {
-        super("Energy", EveTotalConsumption.UUID, {
-          format: api.hap.Characteristic.Formats.FLOAT,
-          unit: "kWh",
-          maxValue: 1000000000,
-          minValue: 0,
-          minStep: 0.001,
-          perms: [
-            api.hap.Characteristic.Perms.READ,
-            api.hap.Characteristic.Perms.NOTIFY,
-          ],
-        });
-        this.value = this.getDefaultValue();
-      }
-    }
-
-    this.EveTotalConsumption = EveTotalConsumption;
-
-    class EveVoltage1 extends this.api.hap.Characteristic {
-      static readonly UUID = "E863F10A-079E-48FF-8F27-9C2605A29F52";
-
-      constructor() {
-        super("Volt", EveVoltage1.UUID, {
-          format: api.hap.Characteristic.Formats.FLOAT,
-          unit: "Volt",
-          maxValue: 1000000000,
-          minValue: 0,
-          minStep: 0.001,
-          perms: [
-            api.hap.Characteristic.Perms.READ,
-            api.hap.Characteristic.Perms.NOTIFY,
-          ],
-        });
-        this.value = this.getDefaultValue();
-      }
-    }
-
-    class EveAmpere1 extends this.api.hap.Characteristic {
-      static readonly UUID = "E863F126-079E-48FF-8F27-9C2605A29F52";
-
-      constructor() {
-        super("Ampere", EveAmpere1.UUID, {
-          format: api.hap.Characteristic.Formats.FLOAT,
-          unit: "Ampere",
-          maxValue: 1000000000,
-          minValue: 0,
-          minStep: 0.001,
-          perms: [
-            api.hap.Characteristic.Perms.READ,
-            api.hap.Characteristic.Perms.NOTIFY,
-          ],
-        });
-        this.value = this.getDefaultValue();
-      }
-    } 
-
-    this.EveAmperage1 = EveAmpere1;
-    this.EveVoltage1 = EveVoltage1;
-  
-    class EvePowerConsumption extends this.api.hap.Characteristic {
-      static readonly UUID = "E863F10D-079E-48FF-8F27-9C2605A29F52";
-
-      constructor() {
-        super("Consumption", EvePowerConsumption.UUID, {
-          format: api.hap.Characteristic.Formats.UINT16,
-          unit: "Watts",
-          maxValue: 100000,
-          minValue: 0,
-          minStep: 1,
-          perms: [
-            api.hap.Characteristic.Perms.READ,
-            api.hap.Characteristic.Perms.NOTIFY,
-          ],
-        });
-        this.value = this.getDefaultValue();
-      }
-    }
-
-    this.EvePowerConsumption = EvePowerConsumption;
-
-    this.PowerMeterService = class PowerMeterService  extends this.api.hap.Service {
-      static readonly UUID = "00000001-0000-1777-8000-775D67EC4377";
-  
-      constructor(displayName: string, subtype?: string) {
-        super(displayName, PowerMeterService.UUID, subtype);
-        this.addCharacteristic(EvePowerConsumption);
-        this.addOptionalCharacteristic(EveTotalConsumption);
-        this.addOptionalCharacteristic(EveAmpere1);
-        this.addOptionalCharacteristic(EveVoltage1);
-      }
-    };
+    // This is only required when using Custom Services and Characteristics not support by HomeKit
+    this.CustomServices = new EveHomeKitTypes(this.api).Services;
+    this.CustomCharacteristics = new EveHomeKitTypes(this.api).Characteristics;
 
     this.api.on("didFinishLaunching", () => {
       log.debug("Executed didFinishLaunching callback");

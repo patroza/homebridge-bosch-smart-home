@@ -14,11 +14,11 @@ import FakegatoHistory from "fakegato-history";
 export class Accessory {
   private service: Service;
 
-  private historyService: Service;
+  private historyService: Service & { addEntry: any };
 
   private states = {
-    powerConsumption: 0,
-    totalConsumption: 0,
+    powerConsumption: 0.0,
+    totalConsumption: 0.0,
   };
 
   constructor(
@@ -38,20 +38,27 @@ export class Accessory {
       );
 
 
-    this.service = this.accessory.getService(this.platform.PowerMeterService) || new this.platform.PowerMeterService(this.accessory.displayName);
+    this.service = this.accessory.getService(this.platform.CustomServices.Outlet) ||
+        this.accessory.addService(this.platform.CustomServices.Outlet);
+
+    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
     this.service
-      .getCharacteristic(this.platform.EvePowerConsumption)
+      .setCharacteristic(this.platform.api.hap.Characteristic.InUse, 1); // TODO
+    this.service
+      .setCharacteristic(this.platform.api.hap.Characteristic.On, 1); // I think?
+
+    this.service
+      .getCharacteristic(this.platform.CustomCharacteristics.Consumption)
       .on("get", (callback) => callback(null, this.states.powerConsumption));
     this.service
-      .addCharacteristic(this.platform.EveTotalConsumption)
+      .getCharacteristic(this.platform.CustomCharacteristics.TotalConsumption)
       .on("get", (callback) => callback(null, this.states.totalConsumption));
     this.service
-      .addCharacteristic(this.platform.EveAmperage1)
-      .on("get", (callback) => callback(null, 1));
-    this.service
-      .addCharacteristic(this.platform.EveVoltage1)
+      .getCharacteristic(this.platform.CustomCharacteristics.Voltage)
       .on("get", (callback) => callback(null, 232));
-
+    this.service
+      .getCharacteristic(this.platform.CustomCharacteristics.ElectricCurrent)
+      .on("get", (callback) => callback(null, 1));
     this.historyService = new FakeGatoHistoryService("energy", this.accessory, { storage:"fs" });
 
     // template:
@@ -111,20 +118,16 @@ export class Accessory {
           this.states.totalConsumption = totalPowerConsumption;
           if (powerConsumption != null) {
             this.service
-              .getCharacteristic(platform.EvePowerConsumption)
-              .setValue(powerConsumption, undefined, undefined);
+              .updateCharacteristic(platform.CustomCharacteristics.Consumption, powerConsumption);
+            
+            this.historyService.addEntry({ time: Math.round(new Date().valueOf() / 1000), power: powerConsumption });
           }
           //FakeGato
           // this.historyService.addEntry({time: Math.round(new Date().valueOf() / 1000), power: powerConsumption});}
           if (totalPowerConsumption != null) {
             this.service
-              .getCharacteristic(platform.EveTotalConsumption)
-              .setValue(totalPowerConsumption, undefined, undefined);
+              .updateCharacteristic(platform.CustomCharacteristics.TotalConsumption, totalPowerConsumption);
           }
-
-          // resolve(powerConsumption,totalPowerConsumption)
-          //  this.waiting_response = false;
-
         }, error: (error) => this.platform.log.error("Error fetching device services", error), complete: () => this.platform.log.debug("Fetch device services complete") });
     }, 10_000);
   }
