@@ -3,6 +3,6 @@ declare module "fakegato-history" {
   export default a;
 
 }
-declare module "homebridge-lib/EveHomeKitTypes" {
+declare module "homebridge-lib" {
   export const EveHomeKitTypes: any;
 }
