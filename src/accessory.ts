@@ -1,9 +1,6 @@
 import type {
   Service,
   PlatformAccessory,
-  // CharacteristicValue,
-  // CharacteristicSetCallback,
-  // CharacteristicGetCallback,
 } from "homebridge";
 
 import { type BoschPlatform, type PlugBase } from "./platform.js";
@@ -47,8 +44,8 @@ export class Accessory {
         this.accessory.addService(this.platform.CustomServices.Outlet);
 
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
-    this.service
-      .setCharacteristic(this.platform.api.hap.Characteristic.InUse, 1); // TODO
+    // this.service
+    //   .setCharacteristic(this.platform.api.hap.Characteristic.InUse, 1); // TODO
     this.service
       .setCharacteristic(this.platform.api.hap.Characteristic.On, 1); // I think?
 
@@ -58,53 +55,18 @@ export class Accessory {
     this.service
       .getCharacteristic(this.platform.CustomCharacteristics.TotalConsumption)
       .on("get", (callback) => callback(null, this.states.totalConsumption));
-    this.service
-      .getCharacteristic(this.platform.CustomCharacteristics.Voltage)
-      .on("get", (callback) => callback(null, 232));
-    this.service
-      .getCharacteristic(this.platform.CustomCharacteristics.ElectricCurrent)
-      .on("get", (callback) => callback(null, 1));
+    // this.service
+    //   .getCharacteristic(this.platform.CustomCharacteristics.Voltage)
+    //   .on("get", (callback) => callback(null, 232));
+    // this.service
+    //   .getCharacteristic(this.platform.CustomCharacteristics.ElectricCurrent)
+    //   .on("get", (callback) => callback(null, 1));
     this.historyService = new FakeGatoHistoryService("energy", this.accessory, { storage:"fs" });
 
-    // template:
-    // this.service =
-    //   this.accessory.getService(this.platform.Service.Lightbulb) ||
-    //   this.accessory.addService(this.platform.Service.Lightbulb);
-    // this.service.setCharacteristic(
-    //   this.platform.Characteristic.Name,
-    //   accessory.context.device.DisplayName
-    // );
-
-    // this.service
-    //   .getCharacteristic(this.platform.Characteristic.On)
-    //   .on("set", this.setOn.bind(this))
-    //   .on("get", this.getOn.bind(this));
-
-    // this.service
-    //   .getCharacteristic(this.platform.Characteristic.Brightness)
-    //   .on("set", this.setBrightness.bind(this));
-
-    // const motionSensorOneService =
-    //   this.accessory.getService("Motion Sensor One Name") ||
-    //   this.accessory.addService(
-    //     this.platform.Service.MotionSensor,
-    //     "Motion Sensor One Name",
-    //     "YourUniqueIdentifier-1"
-    //   );
-    // const motionSensorTwoService =
-    //   this.accessory.getService("Motion Sensor Two Name") ||
-    //   this.accessory.addService(
-    //     this.platform.Service.MotionSensor,
-    //     "Motion Sensor Two Name",
-    //     "YourUniqueIdentifier-2"
-    //   );
-
-    // let motionDetected = false;
-
     // TODO: clear on destruction?
-
+    // TODO: listen to events instead?
     // will receive 503 when trying to retrieve PowerMeter of device that is currently not plugged in it seems..
-    $.timer(0, 1500 + randomInteger(100, 1000))
+    $.timer(0, 2000 + randomInteger(100, 1000))
       .pipe($.switchMap(() =>
         bshb
           .getBshcClient()
@@ -128,8 +90,7 @@ export class Accessory {
             
           this.historyService.addEntry({ time: Math.round(new Date().valueOf() / 1000), power: powerConsumption });
         }
-        //FakeGato
-        // this.historyService.addEntry({time: Math.round(new Date().valueOf() / 1000), power: powerConsumption});}
+
         if (totalPowerConsumption != null) {
           this.service
             .updateCharacteristic(platform.CustomCharacteristics.TotalConsumption, totalPowerConsumption);
