@@ -66,7 +66,7 @@ export class Accessory {
     // TODO: clear on destruction?
     // TODO: listen to events instead?
     // will receive 503 when trying to retrieve PowerMeter of device that is currently not plugged in it seems..
-    $.timer(0, 2000 + randomInteger(100, 1000))
+    $.timer(0, 1000 + randomInteger(100, 1000))
       .pipe($.switchMap(() =>
         bshb
           .getBshcClient()
@@ -84,17 +84,15 @@ export class Accessory {
         this.platform.log.debug(`PowerMeter for ${this.accessory.context.device.name}`, { powerConsumption, totalPowerConsumption, state: response.parsedResponse  });
         this.states.powerConsumption = powerConsumption;
         this.states.totalConsumption = totalPowerConsumption;
-        if (powerConsumption != null) {
-          this.service
-            .updateCharacteristic(platform.CustomCharacteristics.Consumption, powerConsumption);
-            
-          this.historyService.addEntry({ time: Math.round(new Date().valueOf() / 1000), power: powerConsumption });
-        }
 
-        if (totalPowerConsumption != null) {
-          this.service
-            .updateCharacteristic(platform.CustomCharacteristics.TotalConsumption, totalPowerConsumption);
-        }
+        // if we don't use `set` here, it seems like the Eve app thinks the device goes stale?
+        this.service
+          .setCharacteristic(platform.CustomCharacteristics.Consumption, powerConsumption);
+        this.historyService.addEntry({ time: Math.round(new Date().valueOf() / 1000), power: powerConsumption });
+
+        this.service
+          .setCharacteristic(platform.CustomCharacteristics.TotalConsumption, totalPowerConsumption);
+
       }, error: (error) => this.platform.log.error("Error fetching device services", error), complete: () => this.platform.log.debug("Fetch device services complete") });
   }
 }
