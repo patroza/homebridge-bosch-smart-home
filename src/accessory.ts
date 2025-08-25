@@ -9,7 +9,12 @@ import type {
 import { type BoschPlatform, PlugBase } from "./platform";
 import { BoschSmartHomeBridge } from "bosch-smart-home-bridge";
 import FakegatoHistory from "fakegato-history";
+import $ from "rxjs";
 
+
+function randomInteger(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 export class Accessory {
   private service: Service;
@@ -99,36 +104,37 @@ export class Accessory {
     // TODO: clear on destruction?
 
     // will receive 503 when trying to retrieve PowerMeter of device that is currently not plugged in it seems..
-    setInterval(() => {
-      bshb
-        .getBshcClient()
-        .getDeviceServices(this.accessory.context.device.id, "PowerMeter")
-        .subscribe({ next: (response) => {
-          const allPowerMeters = [response.parsedResponse].flat().filter(
-            (_) => _.state && _.state["@type"] === "powerMeterState",
-          );
-          const powerConsumption = Math.abs(
-            parseFloat(allPowerMeters[0].state.powerConsumption),
-          );
-          const totalPowerConsumption = Math.abs(
-            parseFloat(allPowerMeters[0].state.energyConsumption) / 1000,
-          );
-          this.platform.log.debug(`PowerMeter for ${this.accessory.context.device.name}`, { powerConsumption, totalPowerConsumption, state: response.parsedResponse  });
-          this.states.powerConsumption = powerConsumption;
-          this.states.totalConsumption = totalPowerConsumption;
-          if (powerConsumption != null) {
-            this.service
-              .updateCharacteristic(platform.CustomCharacteristics.Consumption, powerConsumption);
+    $.timer(0, 1500 + randomInteger(100, 1000))
+      .pipe($.switchMap(() =>
+        bshb
+          .getBshcClient()
+          .getDeviceServices(this.accessory.context.device.id, "PowerMeter")))
+      .subscribe({ next: (response) => {
+        const allPowerMeters = [response.parsedResponse].flat().filter(
+          (_) => _.state && _.state["@type"] === "powerMeterState",
+        );
+        const powerConsumption = Math.abs(
+          parseFloat(allPowerMeters[0].state.powerConsumption),
+        );
+        const totalPowerConsumption = Math.abs(
+          parseFloat(allPowerMeters[0].state.energyConsumption) / 1000,
+        );
+        this.platform.log.debug(`PowerMeter for ${this.accessory.context.device.name}`, { powerConsumption, totalPowerConsumption, state: response.parsedResponse  });
+        this.states.powerConsumption = powerConsumption;
+        this.states.totalConsumption = totalPowerConsumption;
+        if (powerConsumption != null) {
+          this.service
+            .updateCharacteristic(platform.CustomCharacteristics.Consumption, powerConsumption);
             
-            this.historyService.addEntry({ time: Math.round(new Date().valueOf() / 1000), power: powerConsumption });
-          }
-          //FakeGato
-          // this.historyService.addEntry({time: Math.round(new Date().valueOf() / 1000), power: powerConsumption});}
-          if (totalPowerConsumption != null) {
-            this.service
-              .updateCharacteristic(platform.CustomCharacteristics.TotalConsumption, totalPowerConsumption);
-          }
-        }, error: (error) => this.platform.log.error("Error fetching device services", error), complete: () => this.platform.log.debug("Fetch device services complete") });
-    }, 10_000);
+          this.historyService.addEntry({ time: Math.round(new Date().valueOf() / 1000), power: powerConsumption });
+        }
+        //FakeGato
+        // this.historyService.addEntry({time: Math.round(new Date().valueOf() / 1000), power: powerConsumption});}
+        if (totalPowerConsumption != null) {
+          this.service
+            .updateCharacteristic(platform.CustomCharacteristics.TotalConsumption, totalPowerConsumption);
+        }
+      }, error: (error) => this.platform.log.error("Error fetching device services", error), complete: () => this.platform.log.debug("Fetch device services complete") });
   }
 }
+
