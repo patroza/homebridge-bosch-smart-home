@@ -69,12 +69,21 @@ export class BoschPlatform implements DynamicPlatformPlugin {
         return;
       }
 
+      const empty = () => {};
+      const defaultLogger = new DefaultLogger();
+
       this.log.info("building BSHB client");
       this.bshb = BoschSmartHomeBridgeBuilder.builder()
         .withHost(config.bridgeIp)
         .withClientCert(config.clientCert)
         .withClientPrivateKey(config.clientKey)
-        .withLogger(new DefaultLogger())
+        .withLogger({
+          debug: empty,
+          info: empty,
+          warn: defaultLogger.warn.bind(defaultLogger),
+          error: defaultLogger.error.bind(defaultLogger),
+          fine: empty,
+        })
         .build();
 
       const identifier = BshbUtils.generateIdentifier();
