@@ -19,17 +19,16 @@ import {
 } from "bosch-smart-home-bridge";
 
 // old require version, future should be import...
-import hbl from "homebridge-lib";
+import hbl from "homebridge-lib/EveHomeKitTypes";
 const EveHomeKitTypes = hbl.EveHomeKitTypes;
 
 
 export type PlugBase = { id: string; name: string; serial: string };
 
 export class BoschPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
+  public readonly Service: typeof Service;
 
-  public readonly Characteristic: typeof Characteristic =
-    this.api.hap.Characteristic;
+  public readonly Characteristic: typeof Characteristic;
 
   public readonly accessories: Map<string, PlatformAccessory<{ device: PlugBase }>> = new Map();
 
@@ -55,6 +54,9 @@ export class BoschPlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     log.info("loading..");
+
+    this.Service = this.api.hap.Service;
+    this.Characteristic = this.api.hap.Characteristic;
 
     this.log.debug("Finished initializing platform:", this.config.name);
 

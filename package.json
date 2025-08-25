@@ -3,7 +3,7 @@
     "displayName": "Bosch Smart Home",
     "description": "Enable Homebridge to connect to Bosch Smart Home devices",
     "author": "Patrick Roza",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
@@ -44,6 +44,6 @@
         "axios": "^1.11.0",
         "bosch-smart-home-bridge": "^1.7.34",
         "fakegato-history": "^0.6.7",
-        "homebridge-lib": "^6.7.5"
+        "homebridge-lib": "^7.1.6"
     }
 }
