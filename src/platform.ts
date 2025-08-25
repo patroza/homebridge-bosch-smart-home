@@ -18,9 +18,7 @@ import {
   BoschSmartHomeBridge,
 } from "bosch-smart-home-bridge";
 
-// old require version, future should be import...
-import hbl from "homebridge-lib/EveHomeKitTypes";
-const EveHomeKitTypes = hbl.EveHomeKitTypes;
+import { EveHomeKitTypes } from "homebridge-lib/EveHomeKitTypes";
 
 
 export type PlugBase = { id: string; name: string; serial: string };
