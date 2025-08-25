@@ -8,8 +8,8 @@ import type {
   Service,
 } from "homebridge";
 
-import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
-import { Accessory } from "./accessory";
+import { PLATFORM_NAME, PLUGIN_NAME } from "./settings.js";
+import { Accessory } from "./accessory.js";
 
 import {
   BshbUtils,

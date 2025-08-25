@@ -6,7 +6,7 @@ import type {
   // CharacteristicGetCallback,
 } from "homebridge";
 
-import { type BoschPlatform, PlugBase } from "./platform";
+import { type BoschPlatform, type PlugBase } from "./platform.js";
 import { BoschSmartHomeBridge } from "bosch-smart-home-bridge";
 import FakegatoHistory from "fakegato-history";
 import $ from "rxjs";
